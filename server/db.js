@@ -38,7 +38,8 @@ function initDb(dbPath) {
 }
 
 function getKnowledgeBase(db) {
-  return { ...db.prepare('SELECT text, updated_at FROM knowledge_base WHERE id = 1').get() };
+  const row = { ...db.prepare('SELECT text, updated_at FROM knowledge_base WHERE id = 1').get() };
+  return { text: row.text, updatedAt: row.updated_at };
 }
 
 function updateKnowledgeBase(db, text) {
@@ -49,10 +50,14 @@ function _rowToConversation(row) {
   if (!row) return null;
   const plain = { ...row };
   return {
-    ...plain,
+    id: plain.id,
+    phone: plain.phone,
     messages: JSON.parse(plain.messages),
+    mode: plain.mode,
     escalated: Boolean(plain.escalated),
-    escalationReason: plain.escalation_reason
+    escalationReason: plain.escalation_reason,
+    created_at: plain.created_at,
+    updated_at: plain.updated_at
   };
 }
 

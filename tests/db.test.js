@@ -9,7 +9,7 @@ describe('db', () => {
     test('getKnowledgeBase returns empty text by default', () => {
       const kb = getKnowledgeBase(db);
       expect(kb.text).toBe('');
-      expect(kb.updated_at).toBeDefined();
+      expect(kb.updatedAt).toBeDefined();
     });
 
     test('updateKnowledgeBase persists text', () => {
