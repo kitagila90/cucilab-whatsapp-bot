@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cucilab WhatsApp Assistant</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <h1>Cucilab WhatsApp Assistant</h1>
+    <span class="subtitle">AI-powered customer chat manager</span>
+  </div>
+
+  <div class="inner">
+    <nav class="tabs">
+      <button class="tab active" data-tab="knowledge">Knowledge Base</button>
+      <button class="tab" data-tab="chats">
+        Live Chats <span id="escalation-badge" class="badge hidden">0</span>
+      </button>
+      <button class="tab" data-tab="settings">Settings</button>
+    </nav>
+
+    <!-- Tab: Knowledge Base -->
+    <div id="tab-knowledge" class="tab-content active">
+      <div class="card">
+        <p class="hint">Write everything about Cucilab here — services, pricing, service areas, FAQs, working hours. The AI will answer customers based only on this text.</p>
+        <textarea id="kb-text" rows="20" placeholder="Example:&#10;Cucilab offers professional cleaning services in Kuala Lumpur and Selangor.&#10;&#10;Services &amp; Prices:&#10;- Sofa cleaning: RM150 (2-seater), RM200 (3-seater)&#10;- Carpet cleaning: RM80 per 100 sqft&#10;- Mattress cleaning: RM120 (single), RM150 (queen/king)&#10;&#10;Working hours: Mon-Sat 8am-6pm&#10;Contact: +60 12-345 6789"></textarea>
+        <div class="row-actions">
+          <span id="kb-updated" class="updated-at"></span>
+          <button class="btn-primary" onclick="saveKnowledge()">Save Knowledge Base</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Live Chats -->
+    <div id="tab-chats" class="tab-content hidden">
+      <div class="chats-layout">
+        <div class="chat-list" id="chat-list">
+          <p class="empty-state">No conversations yet. When customers message your WhatsApp, they will appear here.</p>
+        </div>
+        <div class="chat-detail" id="chat-detail">
+          <div class="empty-state-center">
+            <p>Select a conversation to view messages</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Settings -->
+    <div id="tab-settings" class="tab-content hidden">
+      <div class="card">
+        <h2 class="section-title">Meta WhatsApp Cloud API</h2>
+        <div class="field">
+          <label>Phone Number ID</label>
+          <input type="text" id="s-phone-number-id" placeholder="e.g. 123456789012345" />
+        </div>
+        <div class="field">
+          <label>Permanent Access Token</label>
+          <input type="password" id="s-access-token" placeholder="EAAxxxxx..." />
+        </div>
+        <div class="field">
+          <label>Webhook Verify Token</label>
+          <input type="text" id="s-verify-token" />
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Claude AI</h2>
+        <div class="field">
+          <label>Claude API Key</label>
+          <input type="password" id="s-claude-api-key" placeholder="sk-ant-..." />
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Escalation &amp; Notifications</h2>
+        <div class="field">
+          <label>Escalation Trigger Words (comma-separated)</label>
+          <input type="text" id="s-escalation-triggers" placeholder="complaint,refund,problem,tidak puas hati,kecewa" />
+        </div>
+        <div class="field">
+          <label>Your WhatsApp Number (for escalation alerts, optional)</label>
+          <input type="text" id="s-owner-phone" placeholder="e.g. 60123456789" />
+        </div>
+        <div class="field toggle-row">
+          <label>Pause AI (all messages go to you)</label>
+          <input type="checkbox" id="s-ai-paused" />
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="section-title">Webhook URL</h2>
+        <p class="hint">Copy this URL into your Meta WhatsApp App webhook configuration:</p>
+        <div class="code-block" id="webhook-url">Loading...</div>
+      </div>
+
+      <div class="row-actions">
+        <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
