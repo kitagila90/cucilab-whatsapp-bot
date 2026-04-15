@@ -157,12 +157,13 @@ async function sendReply(phone) {
   const input = document.getElementById('reply-input');
   const text = input.value.trim();
   if (!text) return;
-  input.value = '';
-  await fetch('/api/conversations/' + phone + '/messages', {
+  const res = await fetch('/api/conversations/' + phone + '/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text })
   });
+  if (!res.ok) { showToast('Failed to send message. Try again.'); return; }
+  input.value = '';
   openChat(phone);
 }
 
