@@ -2,28 +2,140 @@
 let activePhone = null;
 let prevEscalatedCount = 0;
 
-// ── Tab switching ──────────────────────────────────────────────────────────
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => { c.classList.remove('active'); c.classList.add('hidden'); });
-    tab.classList.add('active');
-    const content = document.getElementById('tab-' + tab.dataset.tab);
-    content.classList.remove('hidden');
-    content.classList.add('active');
-    if (tab.dataset.tab === 'chats') loadConversations();
-    if (tab.dataset.tab === 'calls') loadCalls();
-    if (tab.dataset.tab === 'settings') loadSettings();
+// ── Live Clock ─────────────────────────────────────────────────────────────
+function updateClock() {
+  const el = document.getElementById('live-clock');
+  if (!el) return;
+  const now = new Date();
+  el.textContent = now.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// ── Section switching ──────────────────────────────────────────────────────
+const sectionTitles = {
+  overview:  'Overview',
+  calls:     'Calls',
+  chats:     'Live Chats',
+  knowledge: 'Knowledge Base',
+  settings:  'Settings'
+};
+
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const section = item.dataset.section;
+
+    // Update nav active state
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+
+    // Switch sections
+    document.querySelectorAll('.section').forEach(s => {
+      s.classList.remove('active');
+      s.classList.add('hidden');
+    });
+    const target = document.getElementById('tab-' + section);
+    if (target) {
+      target.classList.remove('hidden');
+      target.classList.add('active');
+    }
+
+    // Update page title
+    const titleEl = document.getElementById('page-title');
+    if (titleEl) titleEl.textContent = sectionTitles[section] || section;
+
+    // Load section data
+    if (section === 'overview')  loadOverview();
+    if (section === 'chats')     loadConversations();
+    if (section === 'calls')     loadCalls();
+    if (section === 'knowledge') loadKnowledge();
+    if (section === 'settings')  loadSettings();
   });
 });
+
+// ── Overview ───────────────────────────────────────────────────────────────
+async function loadOverview() {
+  try {
+    const [callsRes, convsRes] = await Promise.all([
+      fetch('/api/calls'),
+      fetch('/api/conversations')
+    ]);
+    const calls = await callsRes.json();
+    const convs = await convsRes.json();
+
+    const followups   = calls.filter(c => c.follow_up_required);
+    const escalations = convs.filter(c => c.mode === 'escalated');
+
+    document.getElementById('stat-calls').textContent       = calls.length;
+    document.getElementById('stat-chats').textContent       = convs.length;
+    document.getElementById('stat-followups').textContent   = followups.length;
+    document.getElementById('stat-escalations').textContent = escalations.length;
+
+    // Recent calls list
+    const callsList = document.getElementById('overview-calls-list');
+    const recent5calls = calls.slice(-5).reverse();
+    if (recent5calls.length === 0) {
+      callsList.innerHTML = '<p class="empty-state">No calls yet.</p>';
+    } else {
+      callsList.innerHTML = recent5calls.map(c => `
+        <div class="recent-item">
+          <div>
+            <div class="recent-caller">${c.caller_name || c.caller_phone || '—'}</div>
+            <span class="service-tag" style="margin-top:4px;display:inline-block">${(c.service_requested || '—').replace(/_/g,' ')}</span>
+          </div>
+          <span class="recent-time">${c.created_at ? new Date(c.created_at).toLocaleTimeString('en-MY', {hour:'2-digit',minute:'2-digit'}) : '—'}</span>
+        </div>
+      `).join('');
+    }
+
+    // Recent chats list
+    const chatsList = document.getElementById('overview-chats-list');
+    const recent5convs = convs.slice(-5).reverse();
+    if (recent5convs.length === 0) {
+      chatsList.innerHTML = '<p class="empty-state">No chats yet.</p>';
+    } else {
+      chatsList.innerHTML = recent5convs.map(c => {
+        const lastMsg = c.messages && c.messages.length ? c.messages[c.messages.length - 1] : null;
+        const preview = lastMsg ? lastMsg.content.substring(0, 50) : 'No messages';
+        const modeClass = 'mode-' + c.mode;
+        const modeLabel = { ai: 'AI', human: 'Human', escalated: 'Escalated' }[c.mode] || c.mode;
+        return `
+          <div class="recent-item">
+            <div style="min-width:0">
+              <div class="chat-meta" style="justify-content:flex-start;gap:8px;margin-bottom:3px">
+                <span class="recent-caller">${c.phone}</span>
+                <span class="chat-mode ${modeClass}">${modeLabel}</span>
+              </div>
+              <div class="chat-preview" style="padding:0">${preview}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+  } catch (e) {
+    console.error('loadOverview error:', e);
+  }
+}
 
 // ── Knowledge Base ─────────────────────────────────────────────────────────
 async function loadKnowledge() {
   const res = await fetch('/api/knowledge');
   const data = await res.json();
-  document.getElementById('kb-text').value = data.text || '';
+  const textarea = document.getElementById('kb-text');
+  textarea.value = data.text || '';
+  updateCharCount();
   if (data.updatedAt) {
     document.getElementById('kb-updated').textContent = 'Last saved: ' + new Date(data.updatedAt).toLocaleString();
+  }
+}
+
+function updateCharCount() {
+  const textarea = document.getElementById('kb-text');
+  const el = document.getElementById('kb-char-count');
+  if (textarea && el) {
+    const count = textarea.value.length;
+    el.textContent = count.toLocaleString() + ' character' + (count !== 1 ? 's' : '');
   }
 }
 
@@ -37,7 +149,7 @@ async function saveKnowledge() {
   if (res.ok) {
     const data = await res.json();
     document.getElementById('kb-updated').textContent = 'Last saved: ' + new Date(data.updatedAt).toLocaleString();
-    showToast('Knowledge base saved!');
+    showToast('Knowledge base saved!', 'success');
   }
 }
 
@@ -102,7 +214,7 @@ async function openChat(phone, scrollToBottom = true) {
     <div class="chat-header">
       <div>
         <h3>${phone}</h3>
-        <small style="color:#5a6a8a">${modeLabel} — ${conv.messages.length} messages</small>
+        <small>${modeLabel} — ${conv.messages.length} messages</small>
       </div>
       <div class="chat-actions">
         ${conv.mode !== 'human' ? `<button class="btn-danger" onclick="takeOver('${phone}')">Take Over</button>` : ''}
@@ -163,7 +275,7 @@ async function sendReply(phone) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ text })
   });
-  if (!res.ok) { showToast('Failed to send message. Try again.'); return; }
+  if (!res.ok) { showToast('Failed to send message. Try again.', 'error'); return; }
   input.value = '';
   openChat(phone);
 }
@@ -206,10 +318,10 @@ async function loadCalls() {
         <tbody>
           ${calls.map(c => `
             <tr>
-              <td style="white-space:nowrap">${new Date(c.created_at).toLocaleString()}</td>
+              <td style="white-space:nowrap;color:var(--text-muted);font-size:0.78rem">${new Date(c.created_at).toLocaleString()}</td>
               <td>${c.caller_name || '—'}</td>
-              <td>${c.caller_phone || '—'}</td>
-              <td>${c.location || '—'}</td>
+              <td style="color:var(--text-muted)">${c.caller_phone || '—'}</td>
+              <td style="color:var(--text-muted)">${c.location || '—'}</td>
               <td><span class="service-tag">${(c.service_requested || '—').replace(/_/g, ' ')}</span></td>
               <td><span class="intent-tag intent-${c.call_intent}">${(c.call_intent || '—').replace(/_/g, ' ')}</span></td>
               <td style="text-align:center">${c.follow_up_required ? '<span class="followup-yes">Yes</span>' : '<span class="followup-no">No</span>'}</td>
@@ -219,6 +331,14 @@ async function loadCalls() {
         </tbody>
       </table>
     </div>`;
+}
+
+function toggleTestPanel() {
+  const panel = document.getElementById('calls-test-panel');
+  if (panel) {
+    const isVisible = panel.style.display !== 'none';
+    panel.style.display = isVisible ? 'none' : 'block';
+  }
 }
 
 async function sendTestCall() {
@@ -257,10 +377,10 @@ async function sendTestCall() {
   });
 
   if (res.ok) {
-    showToast('Test call sent!');
+    showToast('Test call sent!', 'success');
     loadCalls();
   } else {
-    showToast('Failed to send test call.');
+    showToast('Failed to send test call.', 'error');
   }
 }
 
@@ -293,22 +413,20 @@ async function saveSettings() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   });
-  if (res.ok) showToast('Settings saved!');
+  if (res.ok) showToast('Settings saved!', 'success');
 }
 
 // ── Toast ──────────────────────────────────────────────────────────────────
-function showToast(msg) {
+function showToast(msg, type = '') {
   const toast = document.createElement('div');
+  toast.className = 'toast' + (type ? ' toast-' + type : '');
   toast.textContent = msg;
-  Object.assign(toast.style, {
-    position: 'fixed', bottom: '24px', right: '24px', background: '#1B2A6B',
-    color: 'white', padding: '10px 20px', borderRadius: '8px', fontWeight: '600',
-    fontSize: '0.88rem', zIndex: 9999, opacity: '0', transition: 'opacity 0.3s'
-  });
   document.body.appendChild(toast);
-  requestAnimationFrame(() => { toast.style.opacity = '1'; });
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => { toast.classList.add('toast-show'); });
+  });
   setTimeout(() => {
-    toast.style.opacity = '0';
+    toast.classList.remove('toast-show');
     setTimeout(() => toast.remove(), 300);
   }, 2500);
 }
@@ -317,5 +435,6 @@ function showToast(msg) {
 if (Notification.permission === 'default') Notification.requestPermission();
 
 // ── Init ───────────────────────────────────────────────────────────────────
+loadOverview();
 loadKnowledge();
 setInterval(loadConversations, 5000); // Poll every 5 seconds
