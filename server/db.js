@@ -22,6 +22,28 @@ function initDb(dbPath) {
       updated_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS calls (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      call_id TEXT UNIQUE NOT NULL,
+      caller_phone TEXT NOT NULL DEFAULT '',
+      caller_name TEXT NOT NULL DEFAULT '',
+      location TEXT NOT NULL DEFAULT '',
+      service_requested TEXT NOT NULL DEFAULT '',
+      service_details TEXT NOT NULL DEFAULT '',
+      preferred_date TEXT NOT NULL DEFAULT '',
+      preferred_time TEXT NOT NULL DEFAULT '',
+      call_intent TEXT NOT NULL DEFAULT '',
+      urgency TEXT NOT NULL DEFAULT 'normal',
+      follow_up_required INTEGER NOT NULL DEFAULT 0,
+      notes TEXT NOT NULL DEFAULT '',
+      summary TEXT NOT NULL DEFAULT '',
+      success_evaluation TEXT NOT NULL DEFAULT '',
+      duration_seconds INTEGER NOT NULL DEFAULT 0,
+      recording_url TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'completed',
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS settings (
       id INTEGER PRIMARY KEY,
       phone_number_id TEXT NOT NULL DEFAULT '',
@@ -131,4 +153,28 @@ function updateSettings(db, settings) {
   db.prepare(`UPDATE settings SET ${setClause} WHERE id = 1`).run(...values);
 }
 
-module.exports = { initDb, getKnowledgeBase, updateKnowledgeBase, getConversation, upsertConversation, getAllConversations, getSettings, updateSettings };
+function insertCall(db, data) {
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT OR IGNORE INTO calls (
+      call_id, caller_phone, caller_name, location, service_requested,
+      service_details, preferred_date, preferred_time, call_intent,
+      urgency, follow_up_required, notes, summary, success_evaluation,
+      duration_seconds, recording_url, status, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    data.call_id, data.caller_phone || '', data.caller_name || '',
+    data.location || '', data.service_requested || '', data.service_details || '',
+    data.preferred_date || '', data.preferred_time || '', data.call_intent || '',
+    data.urgency || 'normal', data.follow_up_required ? 1 : 0,
+    data.notes || '', data.summary || '', data.success_evaluation || '',
+    data.duration_seconds || 0, data.recording_url || '',
+    data.status || 'completed', now
+  );
+}
+
+function getAllCalls(db) {
+  return db.prepare('SELECT * FROM calls ORDER BY created_at DESC').all();
+}
+
+module.exports = { initDb, getKnowledgeBase, updateKnowledgeBase, getConversation, upsertConversation, getAllConversations, getSettings, updateSettings, insertCall, getAllCalls };

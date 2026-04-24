@@ -12,6 +12,7 @@ document.querySelectorAll('.tab').forEach(tab => {
     content.classList.remove('hidden');
     content.classList.add('active');
     if (tab.dataset.tab === 'chats') loadConversations();
+    if (tab.dataset.tab === 'calls') loadCalls();
     if (tab.dataset.tab === 'settings') loadSettings();
   });
 });
@@ -165,6 +166,102 @@ async function sendReply(phone) {
   if (!res.ok) { showToast('Failed to send message. Try again.'); return; }
   input.value = '';
   openChat(phone);
+}
+
+// ── Calls ──────────────────────────────────────────────────────────────────
+async function loadCalls() {
+  const res = await fetch('/api/calls');
+  const calls = await res.json();
+
+  const followups = calls.filter(c => c.follow_up_required);
+  const badge = document.getElementById('followup-badge');
+  if (followups.length > 0) {
+    badge.textContent = followups.length;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+
+  const wrap = document.getElementById('calls-table-wrap');
+  if (!calls.length) {
+    wrap.innerHTML = '<p class="empty-state">No calls recorded yet. Send a test call above or wait for a real Vapi call.</p>';
+    return;
+  }
+
+  wrap.innerHTML = `
+    <div class="calls-table-scroll">
+      <table class="calls-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Caller</th>
+            <th>Phone</th>
+            <th>Location</th>
+            <th>Service</th>
+            <th>Intent</th>
+            <th>Follow-up</th>
+            <th>Summary</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${calls.map(c => `
+            <tr>
+              <td style="white-space:nowrap">${new Date(c.created_at).toLocaleString()}</td>
+              <td>${c.caller_name || '—'}</td>
+              <td>${c.caller_phone || '—'}</td>
+              <td>${c.location || '—'}</td>
+              <td><span class="service-tag">${(c.service_requested || '—').replace(/_/g, ' ')}</span></td>
+              <td><span class="intent-tag intent-${c.call_intent}">${(c.call_intent || '—').replace(/_/g, ' ')}</span></td>
+              <td style="text-align:center">${c.follow_up_required ? '<span class="followup-yes">Yes</span>' : '<span class="followup-no">No</span>'}</td>
+              <td class="summary-cell">${c.summary || '—'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+async function sendTestCall() {
+  const payload = {
+    message: {
+      type: 'end-of-call-report',
+      durationSeconds: 87,
+      recordingUrl: '',
+      call: {
+        id: 'test_' + Date.now(),
+        customer: { number: document.getElementById('t-phone').value }
+      },
+      analysis: {
+        summary: `${document.getElementById('t-name').value} called about ${document.getElementById('t-service').value.replace(/_/g,' ')} in ${document.getElementById('t-location').value}. ${document.getElementById('t-notes').value}`,
+        successEvaluation: 'true',
+        structuredData: {
+          caller_name: document.getElementById('t-name').value,
+          caller_phone: document.getElementById('t-phone').value,
+          location: document.getElementById('t-location').value,
+          service_requested: document.getElementById('t-service').value,
+          service_details: document.getElementById('t-details').value,
+          preferred_date: document.getElementById('t-date').value,
+          call_intent: document.getElementById('t-intent').value,
+          urgency: 'normal',
+          follow_up_required: document.getElementById('t-intent').value === 'booking' || document.getElementById('t-intent').value === 'callback_request',
+          notes: document.getElementById('t-notes').value
+        }
+      }
+    }
+  };
+
+  const res = await fetch('/api/vapi/webhook', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (res.ok) {
+    showToast('Test call sent!');
+    loadCalls();
+  } else {
+    showToast('Failed to send test call.');
+  }
 }
 
 // ── Settings ───────────────────────────────────────────────────────────────

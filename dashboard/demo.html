@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CuciLab AI Call Assistant — Live Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy: #1B2A6B;
+      --blue: #0052BD;
+      --light-blue: #EBF3FF;
+      --accent: #00C2A8;
+      --red: #e53e3e;
+      --text: #1e2a40;
+      --muted: #5a6a8a;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f0f4ff;
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── HERO ─────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #0f1e55 0%, #1B2A6B 50%, #0052BD 100%);
+      color: white;
+      text-align: center;
+      padding: 48px 20px 56px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(0,194,168,0.2);
+      border: 1px solid rgba(0,194,168,0.5);
+      color: #00e5cc;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+      position: relative;
+    }
+    .hero h1 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 14px;
+      position: relative;
+    }
+    .hero h1 span { color: #00e5cc; }
+    .hero p {
+      font-size: 1rem;
+      opacity: 0.8;
+      max-width: 520px;
+      margin: 0 auto 28px;
+      line-height: 1.6;
+      position: relative;
+    }
+    .hero-stats {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      flex-wrap: wrap;
+      position: relative;
+    }
+    .stat { text-align: center; }
+    .stat-num { font-size: 1.6rem; font-weight: 800; color: #00e5cc; }
+    .stat-lbl { font-size: 0.75rem; opacity: 0.7; margin-top: 2px; }
+
+    /* ── LAYOUT ───────────────────────────────────────────── */
+    .stage {
+      max-width: 1100px;
+      margin: -28px auto 0;
+      padding: 0 20px 48px;
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 820px) {
+      .stage { grid-template-columns: 1fr; }
+    }
+
+    /* ── PHONE MOCKUP ─────────────────────────────────────── */
+    .phone-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    .phone {
+      width: 300px;
+      background: #111827;
+      border-radius: 40px;
+      padding: 14px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.08);
+      position: relative;
+    }
+    .phone-notch {
+      width: 90px;
+      height: 22px;
+      background: #111827;
+      border-radius: 0 0 16px 16px;
+      margin: 0 auto 8px;
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .notch-cam { width: 8px; height: 8px; background: #222; border-radius: 50%; border: 1px solid #333; }
+    .notch-mic { width: 24px; height: 5px; background: #222; border-radius: 3px; }
+    .phone-screen {
+      background: linear-gradient(180deg, #1a1f35 0%, #0f1429 100%);
+      border-radius: 28px;
+      min-height: 500px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .phone-status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 16px 4px;
+      font-size: 0.68rem;
+      color: rgba(255,255,255,0.6);
+    }
+    .signal-dots { display: flex; gap: 2px; }
+    .signal-dots span { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+    .signal-dots span:nth-child(1) { opacity: 1; }
+    .signal-dots span:nth-child(2) { opacity: 0.7; }
+    .signal-dots span:nth-child(3) { opacity: 0.4; }
+
+    /* Idle screen */
+    .screen-idle {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .screen-idle .phone-icon {
+      width: 64px;
+      height: 64px;
+      background: rgba(0,82,189,0.2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      margin-bottom: 16px;
+      border: 1px solid rgba(0,82,189,0.4);
+    }
+    .screen-idle h3 { color: white; font-size: 1rem; margin-bottom: 6px; }
+    .screen-idle p { color: rgba(255,255,255,0.5); font-size: 0.8rem; line-height: 1.5; }
+
+    /* Ringing screen */
+    .screen-ringing {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .ring-avatar {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #0052BD, #00C2A8);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      margin-bottom: 12px;
+      animation: ringpulse 1s ease-in-out infinite;
+    }
+    @keyframes ringpulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(0,194,168,0.4); }
+      50% { box-shadow: 0 0 0 18px rgba(0,194,168,0); }
+    }
+    .ring-label { color: rgba(255,255,255,0.5); font-size: 0.75rem; margin-bottom: 4px; }
+    .ring-number { color: white; font-size: 1.2rem; font-weight: 700; margin-bottom: 6px; }
+    .ring-status { color: #00e5cc; font-size: 0.82rem; }
+
+    /* Call screen */
+    .screen-call {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+    }
+    .call-header {
+      padding: 16px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .call-timer { color: #00e5cc; font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; }
+    .call-name { color: white; font-size: 1rem; font-weight: 700; }
+    .call-sub { color: rgba(255,255,255,0.4); font-size: 0.72rem; }
+    .transcript {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 300px;
+    }
+    .transcript::-webkit-scrollbar { width: 3px; }
+    .transcript::-webkit-scrollbar-track { background: transparent; }
+    .transcript::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+    .bubble {
+      max-width: 85%;
+      padding: 8px 12px;
+      border-radius: 14px;
+      font-size: 0.8rem;
+      line-height: 1.45;
+      animation: bubblein 0.3s ease;
+    }
+    @keyframes bubblein {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .bubble-aisha {
+      background: rgba(0,82,189,0.25);
+      border: 1px solid rgba(0,82,189,0.3);
+      color: #a8c8ff;
+      align-self: flex-start;
+    }
+    .bubble-aisha strong { color: #00e5cc; font-size: 0.68rem; display: block; margin-bottom: 3px; }
+    .bubble-customer {
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.85);
+      align-self: flex-end;
+    }
+    .bubble-customer strong { color: rgba(255,255,255,0.4); font-size: 0.68rem; display: block; margin-bottom: 3px; text-align: right; }
+    .typing-indicator {
+      display: none;
+      align-self: flex-start;
+      background: rgba(0,82,189,0.2);
+      border: 1px solid rgba(0,82,189,0.25);
+      border-radius: 14px;
+      padding: 10px 14px;
+      gap: 4px;
+      align-items: center;
+    }
+    .typing-indicator span {
+      width: 6px; height: 6px;
+      background: #00e5cc;
+      border-radius: 50%;
+      animation: typing 1.2s ease-in-out infinite;
+    }
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-5px); opacity: 1; }
+    }
+    .call-controls {
+      padding: 14px;
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      border-top: 1px solid rgba(255,255,255,0.07);
+    }
+    .ctrl-btn {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .ctrl-mute { background: rgba(255,255,255,0.1); color: white; }
+    .ctrl-end { background: #e53e3e; color: white; }
+    .ctrl-speaker { background: rgba(255,255,255,0.1); color: white; }
+
+    /* End screen */
+    .screen-end {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      text-align: center;
+    }
+    .end-icon { font-size: 40px; margin-bottom: 10px; }
+    .screen-end h3 { color: white; margin-bottom: 4px; }
+    .screen-end p { color: rgba(255,255,255,0.5); font-size: 0.8rem; }
+
+    /* ── DEMO BUTTON ──────────────────────────────────────── */
+    .demo-btn-wrap { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .btn-demo {
+      background: linear-gradient(135deg, #0052BD, #00C2A8);
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 14px 32px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 8px 24px rgba(0,82,189,0.35);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-demo:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,82,189,0.45); }
+    .btn-demo:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-reset {
+      background: rgba(255,255,255,0.15);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 50px;
+      padding: 14px 24px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: none;
+    }
+    .btn-reset:hover { background: rgba(255,255,255,0.22); }
+
+    /* ── RIGHT PANEL ──────────────────────────────────────── */
+    .right-panel { display: flex; flex-direction: column; gap: 18px; margin-top: 28px; }
+
+    .info-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    }
+    .info-card h3 {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .info-card h3 .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #d1d5db;
+    }
+    .info-card h3 .dot.live { background: #00C2A8; box-shadow: 0 0 6px #00C2A8; animation: blink 1.5s ease-in-out infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    /* Captured data fields */
+    .capture-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .capture-field {
+      background: #f8faff;
+      border-radius: 10px;
+      padding: 10px 12px;
+      border: 1px solid #e8eef8;
+      transition: all 0.4s ease;
+    }
+    .capture-field.filled {
+      background: #f0fff8;
+      border-color: #00C2A8;
+    }
+    .capture-field label {
+      font-size: 0.68rem;
+      color: var(--muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      display: block;
+      margin-bottom: 3px;
+    }
+    .capture-field .value {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+      min-height: 18px;
+    }
+    .capture-field .value.empty { color: #d1d5db; font-weight: 400; font-style: italic; font-size: 0.8rem; }
+    .capture-field.span-2 { grid-column: span 2; }
+
+    /* Tags */
+    .tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .tag-booking { background: #d1fae5; color: #065f46; }
+    .tag-inquiry { background: #fef9c3; color: #713f12; }
+    .tag-urgent { background: #fee2e2; color: #991b1b; }
+    .tag-normal { background: #e0e7ff; color: #3730a3; }
+    .tag-yes { background: #fee2e2; color: #991b1b; }
+    .tag-no { background: #d1fae5; color: #065f46; }
+
+    /* How it works */
+    .steps { display: flex; flex-direction: column; gap: 12px; }
+    .step { display: flex; gap: 12px; align-items: flex-start; }
+    .step-num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: var(--light-blue);
+      color: var(--blue);
+      font-size: 0.78rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-text h4 { font-size: 0.88rem; color: var(--text); margin-bottom: 2px; }
+    .step-text p { font-size: 0.78rem; color: var(--muted); line-height: 1.4; }
+
+    /* CTA */
+    .cta-card {
+      background: linear-gradient(135deg, var(--navy), var(--blue));
+      border-radius: 16px;
+      padding: 22px;
+      color: white;
+      text-align: center;
+    }
+    .cta-card h3 { font-size: 1rem; margin-bottom: 6px; }
+    .cta-card p { font-size: 0.82rem; opacity: 0.75; margin-bottom: 16px; }
+    .btn-whatsapp {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #25D366;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      padding: 10px 22px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .btn-whatsapp:hover { background: #1ebe5a; }
+
+    /* ── NOTIFICATION TOAST ──────────────────────────────── */
+    .notif {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: white;
+      border-radius: 14px;
+      padding: 14px 18px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.88rem;
+      max-width: 320px;
+      opacity: 0;
+      transform: translateY(16px);
+      transition: all 0.35s ease;
+      z-index: 9999;
+      pointer-events: none;
+    }
+    .notif.show { opacity: 1; transform: translateY(0); }
+    .notif-icon { font-size: 24px; flex-shrink: 0; }
+    .notif-body strong { display: block; color: var(--text); margin-bottom: 2px; }
+    .notif-body span { color: var(--muted); font-size: 0.8rem; }
+
+    /* ── FOOTER ──────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 24px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      border-top: 1px solid #e2eaf8;
+      margin-top: 16px;
+    }
+    footer strong { color: var(--navy); }
+  </style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">Live Demo</div>
+  <h1>Meet <span>Aisha</span> — Your AI<br>Call Receptionist</h1>
+  <p>Answers every call, captures bookings, and never misses a lead — 24/7 for CuciLab Malaysia.</p>
+  <div class="hero-stats">
+    <div class="stat"><div class="stat-num">24/7</div><div class="stat-lbl">Always Available</div></div>
+    <div class="stat"><div class="stat-num">&lt;1s</div><div class="stat-lbl">Response Time</div></div>
+    <div class="stat"><div class="stat-num">100%</div><div class="stat-lbl">Calls Answered</div></div>
+    <div class="stat"><div class="stat-num">EN/MY</div><div class="stat-lbl">Bilingual</div></div>
+  </div>
+</div>
+
+<!-- STAGE -->
+<div class="stage">
+
+  <!-- LEFT: Phone + Demo Button -->
+  <div class="phone-wrap">
+
+    <div class="phone">
+      <div class="phone-notch">
+        <div class="notch-mic"></div>
+        <div class="notch-cam"></div>
+      </div>
+      <div class="phone-screen">
+        <div class="phone-status-bar">
+          <span id="clock">9:41</span>
+          <div class="signal-dots">
+            <span></span><span></span><span></span>
+          </div>
+        </div>
+
+        <!-- Idle -->
+        <div class="screen-idle" id="screen-idle">
+          <div class="phone-icon">📞</div>
+          <h3>CuciLab AI Receptionist</h3>
+          <p>Press "Start Demo Call" below to see Aisha answer an incoming customer call in real time.</p>
+        </div>
+
+        <!-- Ringing -->
+        <div class="screen-ringing" id="screen-ringing">
+          <div class="ring-avatar">👤</div>
+          <div class="ring-label">Incoming Call</div>
+          <div class="ring-number">+60 12-345 6789</div>
+          <div class="ring-status" id="ring-status">Ringing...</div>
+        </div>
+
+        <!-- Active Call -->
+        <div class="screen-call" id="screen-call">
+          <div class="call-header">
+            <div class="call-timer" id="call-timer">0:00</div>
+            <div class="call-name">+60 12-345 6789</div>
+            <div class="call-sub">Connected to Aisha · AI Receptionist</div>
+          </div>
+          <div class="transcript" id="transcript">
+            <div class="typing-indicator" id="typing">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+          <div class="call-controls">
+            <button class="ctrl-btn ctrl-mute">🔇</button>
+            <button class="ctrl-btn ctrl-end" onclick="endDemo()">📵</button>
+            <button class="ctrl-btn ctrl-speaker">🔊</button>
+          </div>
+        </div>
+
+        <!-- End -->
+        <div class="screen-end" id="screen-end">
+          <div class="end-icon">✅</div>
+          <h3>Call Completed</h3>
+          <p>Booking captured &amp; sent to CRM</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Demo Buttons -->
+    <div class="demo-btn-wrap">
+      <button class="btn-demo" id="btn-start" onclick="startDemo()">
+        <span>📞</span> Start Demo Call
+      </button>
+      <button class="btn-reset" id="btn-reset" onclick="resetDemo()">↺ Reset</button>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: Info Panel -->
+  <div class="right-panel">
+
+    <!-- Live Capture -->
+    <div class="info-card">
+      <h3><span class="dot" id="live-dot"></span> Captured Data</h3>
+      <div class="capture-grid">
+        <div class="capture-field" id="f-name">
+          <label>Caller Name</label>
+          <div class="value empty" id="v-name">Waiting...</div>
+        </div>
+        <div class="capture-field" id="f-phone">
+          <label>Phone</label>
+          <div class="value empty" id="v-phone">Waiting...</div>
+        </div>
+        <div class="capture-field" id="f-service">
+          <label>Service</label>
+          <div class="value empty" id="v-service">Waiting...</div>
+        </div>
+        <div class="capture-field" id="f-location">
+          <label>Location</label>
+          <div class="value empty" id="v-location">Waiting...</div>
+        </div>
+        <div class="capture-field" id="f-date">
+          <label>Preferred Date</label>
+          <div class="value empty" id="v-date">Waiting...</div>
+        </div>
+        <div class="capture-field" id="f-urgency">
+          <label>Urgency</label>
+          <div class="value empty" id="v-urgency">Waiting...</div>
+        </div>
+        <div class="capture-field" id="f-intent">
+          <label>Call Intent</label>
+          <div class="value empty" id="v-intent">Waiting...</div>
+        </div>
+        <div class="capture-field" id="f-followup">
+          <label>Follow-up Required</label>
+          <div class="value empty" id="v-followup">Waiting...</div>
+        </div>
+        <div class="capture-field span-2" id="f-notes">
+          <label>Notes</label>
+          <div class="value empty" id="v-notes">Waiting...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="info-card">
+      <h3><span class="dot"></span> How It Works</h3>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-text">
+            <h4>Customer calls CuciLab</h4>
+            <p>Call is forwarded to Aisha — your AI receptionist powered by Claude AI.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-text">
+            <h4>Aisha answers &amp; qualifies</h4>
+            <p>Understands the request, quotes prices, and collects booking details naturally.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-text">
+            <h4>Data saved to CRM instantly</h4>
+            <p>Name, service, location, date and intent are captured the moment the call ends.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-text">
+            <h4>Team follows up via WhatsApp</h4>
+            <p>You get an alert. Customer gets a confirmation. No lead falls through the cracks.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-card">
+      <h3>Ready to set this up for your business?</h3>
+      <p>Talk to us on WhatsApp — we'll get Aisha live for you within a day.</p>
+      <a class="btn-whatsapp" href="https://wa.me/60147172220?text=Hi%2C%20I%27m%20interested%20in%20the%20AI%20call%20assistant%20demo" target="_blank">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Chat on WhatsApp
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <strong>CuciLab Malaysia</strong> · AI Call Assistant · Powered by Claude AI &amp; Vapi · cucilab.my
+</footer>
+
+<!-- WhatsApp Notification Toast -->
+<div class="notif" id="notif">
+  <div class="notif-icon">💬</div>
+  <div class="notif-body">
+    <strong>WhatsApp Alert Sent</strong>
+    <span>Team notified — follow-up for Ahmad's sofa booking</span>
+  </div>
+</div>
+
+<script>
+  // ── Clock ────────────────────────────────────────────────
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('clock').textContent =
+      now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
+  }
+  updateClock();
+  setInterval(updateClock, 10000);
+
+  // ── Demo script ──────────────────────────────────────────
+  const script = [
+    { delay: 0,    speaker: 'aisha',    text: 'Hello, thank you for calling CuciLab! This is Aisha. How can I help you today?' },
+    { delay: 2800, speaker: 'customer', text: 'Hi, I\'m Ahmad. I need to clean my sofa — it\'s 3 seats.' },
+    { delay: 2200, speaker: 'aisha',    text: 'Hi Ahmad! Great, sofa cleaning is one of our most popular services. What type of fabric is your sofa — fabric, leather, or velvet?', capture: { name: 'Ahmad Rahman', phone: '+60 12-345 6789' } },
+    { delay: 2500, speaker: 'customer', text: 'It\'s fabric. Grey colour.' },
+    { delay: 1800, speaker: 'aisha',    text: 'Perfect. For a 3-seater fabric sofa, that would be RM165 — RM55 per seat. Would you like to add a full-body deep clean for RM25 per seat?', capture: { service: 'Sofa Cleaning', notes: '3-seater fabric sofa, grey' } },
+    { delay: 3000, speaker: 'customer', text: 'Yes please, add the deep clean. How soon can you come? I\'m in Petaling Jaya.' },
+    { delay: 2000, speaker: 'aisha',    text: 'We can arrange that! Our team covers Petaling Jaya. What date works best for you?', capture: { location: 'Petaling Jaya' } },
+    { delay: 2500, speaker: 'customer', text: 'This Saturday morning? Around 10am.' },
+    { delay: 1800, speaker: 'aisha',    text: 'Saturday morning at 10am — noted! Let me confirm: 3-seater fabric sofa with deep clean, at your place in Petaling Jaya on Saturday. Total would be RM240. Is that correct?', capture: { date: 'Saturday 10:00 AM', intent: 'booking', urgency: 'normal' } },
+    { delay: 2800, speaker: 'customer', text: 'Yes, that\'s right. Please book it for me.' },
+    { delay: 2000, speaker: 'aisha',    text: 'Wonderful! I\'ve noted your booking, Ahmad. Our team will confirm via WhatsApp within a few hours. Thank you for calling CuciLab — have a great day!', capture: { followup: true } },
+  ];
+
+  let timerInterval = null;
+  let callSeconds = 0;
+  let demoRunning = false;
+
+  function showScreen(name) {
+    ['idle','ringing','call','end'].forEach(s => {
+      const el = document.getElementById('screen-' + s);
+      el.style.display = s === name ? 'flex' : 'none';
+    });
+  }
+
+  function setField(id, value, tagClass) {
+    const field = document.getElementById('f-' + id);
+    const val = document.getElementById('v-' + id);
+    if (!field || !val) return;
+    val.classList.remove('empty');
+    if (tagClass) {
+      val.innerHTML = `<span class="tag ${tagClass}">${value}</span>`;
+    } else {
+      val.textContent = value;
+    }
+    field.classList.add('filled');
+    // pulse
+    field.style.transform = 'scale(1.02)';
+    setTimeout(() => field.style.transform = '', 300);
+  }
+
+  function addBubble(speaker, text) {
+    const t = document.getElementById('transcript');
+    const typing = document.getElementById('typing');
+    typing.style.display = 'none';
+
+    const b = document.createElement('div');
+    b.className = 'bubble bubble-' + speaker;
+    b.innerHTML = (speaker === 'aisha' ? '<strong>AISHA · AI</strong>' : '<strong>CUSTOMER</strong>') + text;
+    t.insertBefore(b, typing);
+    t.scrollTop = t.scrollHeight;
+
+    if (speaker === 'aisha') {
+      setTimeout(() => {
+        typing.style.display = 'flex';
+        t.scrollTop = t.scrollHeight;
+      }, 400);
+    }
+  }
+
+  function showNotif() {
+    const n = document.getElementById('notif');
+    n.classList.add('show');
+    setTimeout(() => n.classList.remove('show'), 4000);
+  }
+
+  async function startDemo() {
+    if (demoRunning) return;
+    demoRunning = true;
+    document.getElementById('btn-start').disabled = true;
+
+    // Reset fields
+    ['name','phone','service','location','date','urgency','intent','followup','notes'].forEach(id => {
+      const f = document.getElementById('f-' + id);
+      const v = document.getElementById('v-' + id);
+      if (f) f.classList.remove('filled');
+      if (v) { v.className = 'value empty'; v.textContent = 'Waiting...'; }
+    });
+    document.getElementById('transcript').innerHTML = `
+      <div class="typing-indicator" id="typing" style="display:flex">
+        <span></span><span></span><span></span>
+      </div>`;
+    document.getElementById('live-dot').className = 'dot live';
+
+    // Ringing
+    showScreen('ringing');
+    await sleep(1000);
+    document.getElementById('ring-status').textContent = 'Aisha is answering...';
+    await sleep(1200);
+
+    // Start call
+    showScreen('call');
+    callSeconds = 0;
+    timerInterval = setInterval(() => {
+      callSeconds++;
+      const m = Math.floor(callSeconds / 60);
+      const s = callSeconds % 60;
+      document.getElementById('call-timer').textContent = m + ':' + String(s).padStart(2, '0');
+    }, 1000);
+
+    // Run script
+    let elapsed = 0;
+    for (const line of script) {
+      await sleep(line.delay - elapsed > 0 ? line.delay - elapsed : 0);
+      elapsed = line.delay;
+      addBubble(line.speaker, line.text);
+      if (line.capture) {
+        if (line.capture.name)     setField('name', line.capture.name);
+        if (line.capture.phone)    setField('phone', line.capture.phone);
+        if (line.capture.service)  setField('service', line.capture.service);
+        if (line.capture.location) setField('location', line.capture.location);
+        if (line.capture.notes)    setField('notes', line.capture.notes);
+        if (line.capture.date)     setField('date', line.capture.date);
+        if (line.capture.intent)   setField('intent', 'Booking', 'tag-booking');
+        if (line.capture.urgency)  setField('urgency', 'Normal', 'tag-normal');
+        if (line.capture.followup) setField('followup', 'Yes', 'tag-yes');
+      }
+      await sleep(500);
+    }
+
+    await sleep(1500);
+    endDemo();
+  }
+
+  function endDemo() {
+    clearInterval(timerInterval);
+    document.getElementById('typing').style.display = 'none';
+    showScreen('end');
+    document.getElementById('live-dot').className = 'dot';
+    setTimeout(showNotif, 800);
+    document.getElementById('btn-reset').style.display = 'inline-flex';
+    demoRunning = false;
+  }
+
+  function resetDemo() {
+    showScreen('idle');
+    document.getElementById('btn-start').disabled = false;
+    document.getElementById('btn-reset').style.display = 'none';
+    document.getElementById('live-dot').className = 'dot';
+    ['name','phone','service','location','date','urgency','intent','followup','notes'].forEach(id => {
+      const f = document.getElementById('f-' + id);
+      const v = document.getElementById('v-' + id);
+      if (f) f.classList.remove('filled');
+      if (v) { v.className = 'value empty'; v.textContent = 'Waiting...'; }
+    });
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>

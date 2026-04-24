@@ -7,6 +7,7 @@ const { createWebhookRouter } = require('./webhook');
 const { createKnowledgeRouter } = require('./routes/knowledge');
 const { createConversationsRouter } = require('./routes/conversations');
 const { createSettingsRouter } = require('./routes/settings');
+const { createVapiRouter } = require('./routes/vapi');
 
 const PORT = process.env.PORT || 3001;
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '../data/cucilab.db');
@@ -22,6 +23,12 @@ app.use(express.json());
 
 // WhatsApp webhook
 app.use('/', createWebhookRouter(db));
+
+// Health check — Railway uses this to verify the app is running
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+// Vapi call webhook + calls API
+app.use('/api', createVapiRouter(db));
 
 // Dashboard API
 app.use('/api', createKnowledgeRouter(db));

@@ -18,6 +18,9 @@
       <button class="tab" data-tab="chats">
         Live Chats <span id="escalation-badge" class="badge hidden">0</span>
       </button>
+      <button class="tab" data-tab="calls">
+        Calls <span id="followup-badge" class="badge hidden">0</span>
+      </button>
       <button class="tab" data-tab="settings">Settings</button>
     </nav>
 
@@ -43,6 +46,56 @@
           <div class="empty-state-center">
             <p>Select a conversation to view messages</p>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Calls -->
+    <div id="tab-calls" class="tab-content hidden">
+      <div class="card" id="calls-test-panel">
+        <h2 class="section-title">Test Vapi Webhook</h2>
+        <p class="hint">Simulate a call ending — fires a POST to /api/vapi/webhook so you can see how data appears in the table below.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div class="field"><label>Caller Name</label><input id="t-name" value="Ahmad Rahman" /></div>
+          <div class="field"><label>Caller Phone</label><input id="t-phone" value="+60123456789" /></div>
+          <div class="field"><label>Location</label><input id="t-location" value="Petaling Jaya" /></div>
+          <div class="field">
+            <label>Service</label>
+            <select id="t-service" style="width:100%;border:1px solid #c8d8f0;border-radius:8px;padding:8px 10px;font-size:0.9rem;background:#f4f8ff">
+              <option value="sofa_cleaning">Sofa Cleaning</option>
+              <option value="carpet_cleaning">Carpet Cleaning</option>
+              <option value="mattress_cleaning">Mattress Cleaning</option>
+              <option value="curtain_cleaning">Curtain Cleaning</option>
+              <option value="car_interior_cleaning">Car Interior Cleaning</option>
+              <option value="full_cleaning_package">Full Cleaning Package</option>
+              <option value="office_carpet_cleaning">Office Carpet Cleaning</option>
+            </select>
+          </div>
+          <div class="field"><label>Service Details</label><input id="t-details" value="3-seater sofa, fabric" /></div>
+          <div class="field">
+            <label>Intent</label>
+            <select id="t-intent" style="width:100%;border:1px solid #c8d8f0;border-radius:8px;padding:8px 10px;font-size:0.9rem;background:#f4f8ff">
+              <option value="booking">Booking</option>
+              <option value="pricing_inquiry">Pricing Inquiry</option>
+              <option value="general_inquiry">General Inquiry</option>
+              <option value="callback_request">Callback Request</option>
+            </select>
+          </div>
+          <div class="field"><label>Preferred Date</label><input id="t-date" value="2026-04-25" /></div>
+          <div class="field"><label>Notes</label><input id="t-notes" value="Customer wants morning slot" /></div>
+        </div>
+        <div class="row-actions">
+          <button class="btn-primary" onclick="sendTestCall()">Send Test Call</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <h2 class="section-title" style="margin:0">Call Records</h2>
+          <button class="btn-secondary" onclick="loadCalls()">Refresh</button>
+        </div>
+        <div id="calls-table-wrap">
+          <p class="empty-state">No calls recorded yet. Send a test call above or wait for a real Vapi call.</p>
         </div>
       </div>
     </div>

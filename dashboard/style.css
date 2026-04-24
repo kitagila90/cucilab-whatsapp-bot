@@ -74,4 +74,20 @@ body { font-family: 'Segoe UI', sans-serif; background: #EBF3FF; min-height: 100
 .reply-box input:focus { outline: none; border-color: #0052BD; }
 
 .empty-state { padding: 24px; color: #5a6a8a; font-size: 0.88rem; text-align: center; }
+
+/* Calls table */
+.calls-table-scroll { overflow-x: auto; }
+.calls-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.calls-table th { background: #f4f8ff; color: #1B2A6B; font-weight: 700; padding: 10px 12px; text-align: left; border-bottom: 2px solid #c8d8f0; white-space: nowrap; }
+.calls-table td { padding: 10px 12px; border-bottom: 1px solid #f0f4fc; vertical-align: top; color: #1e2a40; }
+.calls-table tr:hover td { background: #f9fbff; }
+.service-tag { background: #EBF3FF; color: #0052BD; border-radius: 6px; padding: 2px 8px; font-size: 0.78rem; font-weight: 600; text-transform: capitalize; }
+.intent-tag { border-radius: 6px; padding: 2px 8px; font-size: 0.78rem; font-weight: 600; text-transform: capitalize; }
+.intent-booking { background: #d1fae5; color: #065f46; }
+.intent-pricing_inquiry { background: #fef9c3; color: #713f12; }
+.intent-general_inquiry { background: #e0e7ff; color: #3730a3; }
+.intent-callback_request { background: #fee2e2; color: #991b1b; }
+.followup-yes { background: #fee2e2; color: #991b1b; border-radius: 6px; padding: 2px 8px; font-size: 0.78rem; font-weight: 700; }
+.followup-no { background: #d1fae5; color: #065f46; border-radius: 6px; padding: 2px 8px; font-size: 0.78rem; font-weight: 700; }
+.summary-cell { max-width: 260px; color: #5a6a8a; font-size: 0.82rem; }
 .empty-state-center { display: flex; align-items: center; justify-content: center; height: 100%; color: #5a6a8a; font-size: 0.88rem; }

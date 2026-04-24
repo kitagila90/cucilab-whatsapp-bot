@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aisha — CuciLab AI</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+      background: #000;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ── BACKGROUND BLOBS ─────────────────────────────── */
+    .bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.35;
+      transition: all 1.5s ease;
+    }
+    .blob-1 { width: 500px; height: 500px; background: #1a1f6e; top: -100px; left: -100px; }
+    .blob-2 { width: 400px; height: 400px; background: #0a3d62; bottom: -80px; right: -80px; }
+    .blob-3 { width: 300px; height: 300px; background: #006d5b; top: 40%; left: 60%; opacity: 0.2; }
+    .blob-1.speaking { background: #0052BD; opacity: 0.5; transform: scale(1.2); }
+    .blob-2.speaking { background: #00C2A8; opacity: 0.4; transform: scale(1.15); }
+    .blob-3.speaking { opacity: 0.35; }
+
+    /* ── PHONE FRAME ──────────────────────────────────── */
+    .phone {
+      width: 375px;
+      height: 812px;
+      background: rgba(15, 15, 20, 0.85);
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      border-radius: 54px;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow:
+        0 0 0 0.5px rgba(255,255,255,0.05),
+        0 40px 80px rgba(0,0,0,0.8),
+        inset 0 1px 0 rgba(255,255,255,0.08);
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── DYNAMIC ISLAND ───────────────────────────────── */
+    .dynamic-island {
+      width: 120px;
+      height: 34px;
+      background: #000;
+      border-radius: 20px;
+      margin: 14px auto 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+      z-index: 10;
+      flex-shrink: 0;
+    }
+    .dynamic-island.active {
+      width: 200px;
+      height: 36px;
+    }
+    .di-dot { width: 8px; height: 8px; border-radius: 50%; background: #1c1c1e; }
+    .di-dot.cam { background: #1a1a2e; border: 1px solid #333; }
+    .di-wave {
+      display: none;
+      align-items: center;
+      gap: 2px;
+    }
+    .di-wave.show { display: flex; }
+    .di-bar {
+      width: 2px;
+      background: #00C2A8;
+      border-radius: 2px;
+      animation: diwave 0.8s ease-in-out infinite;
+    }
+    .di-bar:nth-child(1) { height: 6px; animation-delay: 0s; }
+    .di-bar:nth-child(2) { height: 12px; animation-delay: 0.1s; }
+    .di-bar:nth-child(3) { height: 18px; animation-delay: 0.2s; }
+    .di-bar:nth-child(4) { height: 12px; animation-delay: 0.3s; }
+    .di-bar:nth-child(5) { height: 6px; animation-delay: 0.4s; }
+    @keyframes diwave {
+      0%,100% { transform: scaleY(0.5); opacity: 0.6; }
+      50% { transform: scaleY(1); opacity: 1; }
+    }
+    .di-timer {
+      display: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: #00C2A8;
+      letter-spacing: 0.02em;
+    }
+    .di-timer.show { display: block; }
+
+    /* ── STATUS TIME ──────────────────────────────────── */
+    .status-time {
+      text-align: center;
+      margin-top: 6px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 0.02em;
+      flex-shrink: 0;
+    }
+
+    /* ── MAIN CONTENT ─────────────────────────────────── */
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 28px;
+      overflow: hidden;
+    }
+
+    /* ── AVATAR ───────────────────────────────────────── */
+    .avatar-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 36px;
+      flex-shrink: 0;
+    }
+    .avatar-outer {
+      position: relative;
+      width: 120px;
+      height: 120px;
+      margin-bottom: 20px;
+    }
+    .avatar-ring {
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      transition: all 0.6s ease;
+    }
+    .avatar-ring.idle {
+      border-color: rgba(255,255,255,0.08);
+    }
+    .avatar-ring.ready {
+      border-color: rgba(0,194,168,0.4);
+      box-shadow: 0 0 20px rgba(0,194,168,0.2);
+    }
+    .avatar-ring.speaking {
+      border-color: #00C2A8;
+      box-shadow: 0 0 30px rgba(0,194,168,0.5);
+      animation: ringpulse 1.2s ease-in-out infinite;
+    }
+    .avatar-ring.listening {
+      border-color: rgba(100,160,255,0.6);
+      box-shadow: 0 0 24px rgba(100,160,255,0.3);
+      animation: ringpulse 1.8s ease-in-out infinite;
+    }
+    @keyframes ringpulse {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .avatar-img {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #1c2951, #0d1b3e);
+      border: 2px solid rgba(255,255,255,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 52px;
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+    }
+    .avatar-img::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(145deg, rgba(255,255,255,0.06), transparent);
+      border-radius: 50%;
+    }
+
+    .caller-name {
+      font-size: 30px;
+      font-weight: 300;
+      color: white;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px;
+    }
+    .caller-sub {
+      font-size: 14px;
+      color: rgba(255,255,255,0.45);
+      font-weight: 400;
+      letter-spacing: 0.01em;
+    }
+
+    /* ── TRANSCRIPT ───────────────────────────────────── */
+    .transcript-area {
+      width: 100%;
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 0 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    .transcript-area::-webkit-scrollbar { display: none; }
+
+    .empty-hint {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 10px;
+      opacity: 0.4;
+    }
+    .empty-hint .icon { font-size: 28px; }
+    .empty-hint p { font-size: 13px; color: rgba(255,255,255,0.6); text-align: center; line-height: 1.5; }
+
+    .bubble {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 18px;
+      font-size: 14px;
+      line-height: 1.5;
+      letter-spacing: 0.01em;
+      animation: bubblein 0.25s ease;
+    }
+    @keyframes bubblein {
+      from { opacity: 0; transform: translateY(8px) scale(0.97); }
+      to { opacity: 1; transform: none; }
+    }
+    .bubble-aisha {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.07);
+      color: rgba(255,255,255,0.92);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+    .bubble-name {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      color: #00C2A8;
+    }
+    .bubble-user {
+      background: #0052BD;
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+
+    .typing-bubble {
+      display: none;
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 18px;
+      border-bottom-left-radius: 4px;
+      padding: 12px 16px;
+      align-self: flex-start;
+      width: fit-content;
+      align-items: center;
+      gap: 4px;
+    }
+    .typing-bubble.show { display: flex; }
+    .typing-bubble span {
+      width: 5px; height: 5px;
+      background: rgba(255,255,255,0.4);
+      border-radius: 50%;
+      animation: tdot 1.2s ease-in-out infinite;
+    }
+    .typing-bubble span:nth-child(2) { animation-delay: 0.15s; }
+    .typing-bubble span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes tdot {
+      0%,60%,100% { transform: none; opacity: 0.4; }
+      30% { transform: translateY(-4px); opacity: 1; }
+    }
+
+    /* ── CALL CONTROLS ────────────────────────────────── */
+    .controls {
+      width: 100%;
+      padding: 16px 0 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      flex-shrink: 0;
+    }
+
+    /* Idle state — big call button */
+    .btn-call-wrap { width: 100%; }
+    .btn-call {
+      width: 100%;
+      height: 56px;
+      border-radius: 16px;
+      border: none;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      letter-spacing: 0.01em;
+      transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-call:active { transform: scale(0.97); }
+    .btn-call:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .btn-answer {
+      background: #34C759;
+      color: white;
+      box-shadow: 0 4px 20px rgba(52,199,89,0.35);
+    }
+    .btn-answer:hover:not(:disabled) { background: #30b350; }
+
+    /* Active call — iOS-style grid */
+    .active-controls {
+      display: none;
+      width: 100%;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .active-controls.show { display: flex; }
+    .ctrl-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .ctrl-btn {
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255,255,255,0.12);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      cursor: pointer;
+      transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      padding: 14px;
+    }
+    .ctrl-btn:active { background: rgba(255,255,255,0.2); }
+    .ctrl-icon { font-size: 22px; line-height: 1; }
+    .ctrl-label { font-size: 10px; color: rgba(255,255,255,0.6); font-weight: 500; letter-spacing: 0.02em; }
+
+    .btn-end-row { display: flex; justify-content: center; }
+    .btn-end-circle {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: none;
+      background: #FF3B30;
+      color: white;
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(255,59,48,0.4);
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-end-circle:active { transform: scale(0.93); }
+
+    /* ── CONFIG NOTICE ────────────────────────────────── */
+    .config-notice {
+      position: absolute;
+      bottom: 90px;
+      left: 20px;
+      right: 20px;
+      background: rgba(255,204,0,0.12);
+      border: 1px solid rgba(255,204,0,0.25);
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: rgba(255,220,100,0.9);
+      display: none;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      z-index: 10;
+    }
+    .config-notice code {
+      background: rgba(255,204,0,0.15);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 11px;
+    }
+
+    /* ── BOTTOM HOME INDICATOR ────────────────────────── */
+    .home-bar {
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .home-indicator {
+      width: 134px;
+      height: 5px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 3px;
+    }
+
+    /* ── OUTSIDE CARD ─────────────────────────────────── */
+    .brand-footer {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      color: rgba(255,255,255,0.25);
+      white-space: nowrap;
+      z-index: 2;
+      letter-spacing: 0.03em;
+    }
+
+    @media (max-height: 830px) {
+      .phone { height: 100vh; border-radius: 0; }
+      .avatar-section { margin-top: 20px; }
+      .avatar-outer { width: 96px; height: 96px; }
+      .avatar-img { width: 96px; height: 96px; font-size: 42px; }
+      .caller-name { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Ambient background -->
+<div class="bg">
+  <div class="blob blob-1" id="blob1"></div>
+  <div class="blob blob-2" id="blob2"></div>
+  <div class="blob blob-3" id="blob3"></div>
+</div>
+
+<!-- iPhone -->
+<div class="phone">
+
+  <!-- Dynamic Island -->
+  <div class="dynamic-island" id="dynamic-island">
+    <div class="di-dot cam"></div>
+    <div class="di-wave" id="di-wave">
+      <div class="di-bar"></div><div class="di-bar"></div><div class="di-bar"></div>
+      <div class="di-bar"></div><div class="di-bar"></div>
+    </div>
+    <div class="di-timer" id="di-timer">0:00</div>
+    <div class="di-dot"></div>
+  </div>
+
+  <div class="status-time" id="status-time">CuciLab AI · Available 24/7</div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Avatar -->
+    <div class="avatar-section">
+      <div class="avatar-outer">
+        <div class="avatar-ring idle" id="avatar-ring"></div>
+        <div class="avatar-img">👩‍💼</div>
+      </div>
+      <div class="caller-name">Aisha</div>
+      <div class="caller-sub" id="call-sub">AI Receptionist · CuciLab</div>
+    </div>
+
+    <!-- Transcript -->
+    <div class="transcript-area" id="transcript">
+      <div class="empty-hint" id="empty-hint">
+        <div class="icon">🎙️</div>
+        <p>Ask about pricing, book a cleaning,<br>or just say hello.</p>
+      </div>
+      <div class="typing-bubble" id="typing">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+
+      <!-- Idle: big answer button -->
+      <div class="btn-call-wrap" id="idle-controls">
+        <button class="btn-call btn-answer" id="btn-start" onclick="startCall()">
+          <span>📞</span> Talk to Aisha
+        </button>
+      </div>
+
+      <!-- Active: iOS-style grid -->
+      <div class="active-controls" id="active-controls">
+        <div class="ctrl-grid">
+          <button class="ctrl-btn">
+            <span class="ctrl-icon">🔇</span>
+            <span class="ctrl-label">Mute</span>
+          </button>
+          <button class="ctrl-btn">
+            <span class="ctrl-icon">⌨️</span>
+            <span class="ctrl-label">Keypad</span>
+          </button>
+          <button class="ctrl-btn" id="btn-speaker" onclick="toggleSpeaker()">
+            <span class="ctrl-icon" id="speaker-icon">🔊</span>
+            <span class="ctrl-label">Speaker</span>
+          </button>
+        </div>
+        <div class="btn-end-row">
+          <button class="btn-end-circle" onclick="endCall()">📵</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Config notice -->
+  <div class="config-notice" id="config-notice">
+    Replace <code>VAPI_PUBLIC_KEY</code> &amp; <code>ASSISTANT_ID</code> in the script to activate.
+  </div>
+
+  <!-- Home bar -->
+  <div class="home-bar"><div class="home-indicator"></div></div>
+</div>
+
+<div class="brand-footer">cucilab.my · Powered by Claude AI</div>
+
+<script type="module">
+  import Vapi from 'https://esm.sh/@vapi-ai/web';
+  // ─────────────────────────────────────────────────────
+  const VAPI_PUBLIC_KEY = '0da0e61a-930d-4431-9ce9-45e18600633b';
+  const ASSISTANT_ID    = 'e1a4b242-ac83-490b-a528-4544a13d556a';
+  // ─────────────────────────────────────────────────────
+
+  const isConfigured = VAPI_PUBLIC_KEY !== 'YOUR_VAPI_PUBLIC_KEY';
+
+  let vapi = null;
+  let timerInterval = null;
+  let seconds = 0;
+  let callActive = false;
+
+  function el(id) { return document.getElementById(id); }
+
+  if (!isConfigured) {
+    el('config-notice').style.display = 'block';
+    el('btn-start').disabled = true;
+  } else {
+    try {
+      vapi = new Vapi(VAPI_PUBLIC_KEY);
+      bindEvents();
+      setRing('ready');
+      console.log('[Vapi] Initialized successfully');
+    } catch (e) {
+      console.error('[Vapi init error]', e);
+      el('call-sub').textContent = '⚠️ SDK error: ' + e.message;
+      el('btn-start').disabled = true;
+    }
+  }
+
+  function bindEvents() {
+    vapi.on('call-start', () => {
+      callActive = true;
+      el('empty-hint').style.display = 'none';
+      el('idle-controls').style.display = 'none';
+      el('active-controls').classList.add('show');
+      el('dynamic-island').classList.add('active');
+      el('di-timer').classList.add('show');
+      el('call-sub').textContent = 'Connected';
+      el('status-time').textContent = 'Encrypted call';
+      setRing('ready');
+      startTimer();
+      setBlobs('active');
+    });
+
+    vapi.on('call-end', () => {
+      callActive = false;
+      stopTimer();
+      el('active-controls').classList.remove('show');
+      el('idle-controls').style.display = 'block';
+      el('dynamic-island').classList.remove('active');
+      el('di-wave').classList.remove('show');
+      el('di-timer').classList.remove('show');
+      el('typing').classList.remove('show');
+      el('call-sub').textContent = 'AI Receptionist · CuciLab';
+      el('status-time').textContent = 'CuciLab AI · Available 24/7';
+      setRing('ready');
+      setBlobs('idle');
+    });
+
+    vapi.on('speech-start', () => {
+      setRing('speaking');
+      el('di-wave').classList.add('show');
+      el('typing').classList.remove('show');
+      el('call-sub').textContent = 'Aisha is speaking...';
+      setBlobs('speaking');
+    });
+
+    vapi.on('speech-end', () => {
+      setRing('listening');
+      el('di-wave').classList.remove('show');
+      el('call-sub').textContent = 'Listening...';
+      setBlobs('active');
+    });
+
+    vapi.on('message', (msg) => {
+      if (msg.type !== 'transcript') return;
+      if (msg.transcriptType === 'partial' && msg.role === 'assistant') {
+        el('typing').classList.add('show');
+        el('transcript').scrollTop = 9999;
+      } else if (msg.transcriptType === 'final') {
+        el('typing').classList.remove('show');
+        addBubble(msg.role === 'assistant' ? 'aisha' : 'user', msg.transcript);
+      }
+    });
+
+    vapi.on('error', (err) => {
+      console.error('[Vapi error]', err);
+      stopTimer();
+      callActive = false;
+      el('active-controls').classList.remove('show');
+      el('idle-controls').style.display = 'block';
+      el('btn-start').disabled = false;
+      el('dynamic-island').classList.remove('active');
+      setRing('idle');
+      setBlobs('idle');
+
+      // Show real error so we can debug
+      const msg = err?.message || err?.error?.message || JSON.stringify(err) || 'Unknown error';
+      el('call-sub').textContent = '⚠️ ' + msg;
+      console.error('[Vapi full error object]', JSON.stringify(err, null, 2));
+    });
+  }
+
+  async function startCall() {
+    if (!isConfigured || !vapi) {
+      el('call-sub').textContent = '⚠️ Vapi not initialised — check console';
+      return;
+    }
+    el('btn-start').disabled = true;
+    el('call-sub').textContent = 'Connecting...';
+    setRing('speaking');
+    try {
+      await vapi.start(ASSISTANT_ID);
+    } catch (e) {
+      console.error('[Vapi start error]', e);
+      el('btn-start').disabled = false;
+      setRing('ready');
+      el('call-sub').textContent = '⚠️ ' + (e?.message || 'Could not connect');
+    }
+  }
+
+  function endCall() {
+    if (vapi && callActive) vapi.stop();
+  }
+
+  function addBubble(speaker, text) {
+    const t = el('transcript');
+    const typing = el('typing');
+    const b = document.createElement('div');
+    b.className = 'bubble bubble-' + speaker;
+    if (speaker === 'aisha') {
+      b.innerHTML = `<div class="bubble-name">Aisha</div>${text}`;
+    } else {
+      b.textContent = text;
+    }
+    t.insertBefore(b, typing);
+    t.scrollTop = t.scrollHeight;
+  }
+
+  function setRing(state) {
+    el('avatar-ring').className = 'avatar-ring ' + state;
+  }
+
+  function setBlobs(state) {
+    ['blob1','blob2','blob3'].forEach(id => {
+      el(id).classList.toggle('speaking', state === 'speaking');
+    });
+  }
+
+  function startTimer() {
+    seconds = 0;
+    timerInterval = setInterval(() => {
+      seconds++;
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      el('di-timer').textContent = m + ':' + String(s).padStart(2,'0');
+    }, 1000);
+  }
+
+  function stopTimer() {
+    clearInterval(timerInterval);
+    el('di-timer').classList.remove('show');
+  }
+
+  // ── Speaker toggle ─────────────────────────────────────
+  let speakerOn = false;
+  function toggleSpeaker() {
+    speakerOn = !speakerOn;
+    const btn  = el('btn-speaker');
+    const icon = el('speaker-icon');
+
+    if (speakerOn) {
+      btn.style.background  = 'rgba(0,194,168,0.3)';
+      btn.style.borderColor = '#00C2A8';
+      icon.textContent = '🔊';
+
+      // Force all audio elements to play through speaker
+      document.querySelectorAll('audio').forEach(a => {
+        if (a.setSinkId) {
+          // Try to route to default speaker output
+          a.setSinkId('').catch(() => {});
+        }
+        a.play().catch(() => {});
+      });
+
+      // iOS workaround: unlock audio context and route to speaker
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+          const ctx = new AudioCtx();
+          // Create a silent buffer to unlock audio on iOS
+          const buf = ctx.createBuffer(1, 1, 22050);
+          const src = ctx.createBufferSource();
+          src.buffer = buf;
+          src.connect(ctx.destination);
+          src.start(0);
+          ctx.resume();
+        }
+      } catch(e) { console.warn('AudioContext unlock:', e); }
+
+    } else {
+      btn.style.background  = '';
+      btn.style.borderColor = '';
+      icon.textContent = '🔇';
+    }
+  }
+
+  // Expose to window so onclick handlers in HTML can reach them
+  window.startCall     = startCall;
+  window.endCall       = endCall;
+  window.toggleSpeaker = toggleSpeaker;
+</script>
+</body>
+</html>
